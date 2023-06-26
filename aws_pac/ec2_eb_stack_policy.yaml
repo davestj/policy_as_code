@@ -1,0 +1,54 @@
+Parameters:
+  PolicyName:
+    Type: String
+    Description: Name for the IAM Role policy
+  UserName:
+    Type: String
+    Description: Name for the IAM User
+
+Resources:
+  PaCIAMRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "${UserName}Role"
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: [ec2.amazonaws.com, elasticbeanstalk.amazonaws.com]
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: !Ref PolicyName
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - ec2:*
+                  - elasticbeanstalk:*
+                  - s3:*
+                  - route53:*
+                  - vpc:*
+                Resource: '*'
+
+  PaCIAMUser:
+    Type: AWS::IAM::User
+    Properties:
+      UserName: !Ref UserName
+
+  PaCIAMUserAccessKey:
+    Type: AWS::IAM::AccessKey
+    Properties:
+      UserName: !Ref UserName
+
+Outputs:
+  IAMRoleARN:
+    Description: ARN of the IAM Role
+    Value: !GetAtt PaCIAMRole.Arn
+  IAMUserARN:
+    Description: ARN of the IAM User
+    Value: !GetAtt PaCIAMUser.Arn
+  IAMUserName:
+    Description: Name of the IAM User
+    Value: !Ref UserName
