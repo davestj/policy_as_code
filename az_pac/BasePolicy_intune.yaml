@@ -1,0 +1,77 @@
+# File: policyEnforcement.yaml
+$schema: "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#"
+contentVersion: "1.0.0.0"
+parameters:
+  tagName:
+    type: string
+    metadata:
+      description: "The name of the required tag."
+  mfaGroupId:
+    type: string
+    metadata:
+      description: "The object ID of the 'Engineering' group."
+resources:
+  - type: Microsoft.Authorization/policyDefinitions
+    apiVersion: "2019-09-01"
+    name: tagEnforcementPolicy
+    properties:
+      displayName: "Enforce tag name-value pair"
+      policyType: "Custom"
+      mode: "All"
+      parameters: {}
+      policyRule:
+        if:
+          not:
+            field: "tags['[parameters('tagName')]']"
+        then:
+          effect: "deny"
+  - type: Microsoft.Authorization/policyAssignments
+    apiVersion: "2019-09-01"
+    name: tagEnforcementPolicyAssignment
+    properties:
+      displayName: "Enforce tag name-value pair policy assignment"
+      policyDefinitionId: "[resourceId('Microsoft.Authorization/policyDefinitions', 'tagEnforcementPolicy')]"
+      parameters: {}
+
+  - type: Microsoft.Authorization/policyDefinitions
+    apiVersion: "2019-09-01"
+    name: mfaIntunePolicy
+    properties:
+      displayName: "Enforce MFA and Intune registration for Engineering group"
+      policyType: "Custom"
+      mode: "All"
+      parameters: {}
+      policyRule:
+        if:
+          not:
+            allOf:
+              - field: "user.assignedLicenses"
+                exists: true
+              - field: "user.assignedLicenses[?licensePlanId == 'aad9489e-5d4e-4133-b061-2c256e506e41'].disabledPlans[?contains(planId, 'a4265b5a-2b3c-424a-bb40-89c09e470df7')]"
+                exists: true
+              - field: "user.assignedLicenses[?licensePlanId == 'aad9489e-5d4e-4133-b061-2c256e506e41'].disabledPlans[?contains(planId, '57ff2da0-773e-42df-b2af-ffb7a2317929')]"
+                exists: true
+              - field: "user.assignedPlans"
+                exists: true
+              - field: "user.assignedPlans[?contains(servicePlanId, '8e3ce202-8bbe-4bef-afc9-b5ccf4fe56ef')]"
+                exists: true
+              - field: "user.assignedPlans[?contains(servicePlanId, '1f7000a6-6150-4b33-8f8d-2b302f0d9396')]"
+                exists: true
+              - field: "user.assignedPlans[?contains(servicePlanId, '45e1a1f4-76b7-4778-9c6e-e8f361609fff')]"
+                exists: true
+              - field: "user.memberOf"
+                exists: true
+              - field: "user.memberOf[?contains(id, parameters('mfaGroupId'))]"
+                exists: true
+        then:
+          effect: "deny"
+resources:
+  - type: Microsoft.Authorization/policyAssignments
+    apiVersion: "2019-09-01"
+    name: mfaIntunePolicyAssignment
+    properties:
+      displayName: "Enforce MFA and Intune registration for Engineering group policy assignment"
+      policyDefinitionId: "[resourceId('Microsoft.Authorization/policyDefinitions', 'mfaIntunePolicy')]"
+      parameters:
+        mfaGroupId:
+          value: "[parameters('mfaGroupId')]"
